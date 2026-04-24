@@ -48,16 +48,32 @@ CLASS_COLORS = {
 }
 
 # ── Load data ─────────────────────────────────────────────────────────────────
+from pathlib import Path
+
 @st.cache_data
-def load_data():
-    df = pd.read_csv("zoo_converted.csv")
+def load_data(file=None):
+    if file is not None:
+        df = pd.read_csv(file)
+    else:
+        # Look for CSV next to this script (works locally & on Streamlit Cloud)
+        csv_path = Path(__file__).parent / "zoo_converted.csv"
+        df = pd.read_csv(csv_path)
     df.columns = ["Animal"] + list(FEATURE_COLS.keys())
     df.rename(columns=FEATURE_COLS, inplace=True)
     df["Class Name"] = df["Class Type"].map(CLASS_NAMES)
     df["Animal"] = df["Animal"].str.title()
     return df
 
-df = load_data()
+# Try loading automatically; show uploader if file is missing
+csv_path = Path(__file__).parent / "zoo_converted.csv"
+if csv_path.exists():
+    df = load_data()
+else:
+    st.warning("⚠️ `zoo_converted.csv` not found. Please upload the file below.")
+    uploaded = st.file_uploader("Upload zoo_converted.csv", type="csv")
+    if uploaded is None:
+        st.stop()
+    df = load_data(uploaded)
 
 BINARY_FEATURES = [c for c in FEATURE_COLS.values() if c not in ("Legs", "Class Type")]
 
